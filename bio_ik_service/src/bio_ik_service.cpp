@@ -21,6 +21,9 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
+#include <moveit/collision_detection_bullet/collision_env_bullet.h>
+#include <moveit/collision_detection_bullet/collision_detector_allocator_bullet.h>
+
 #include <mutex>
 #include <thread>
 #include <unordered_map>
@@ -67,7 +70,7 @@ getPlanningScene(std::string robot_description) {
   } else {
     psm = planning_scene_monitors[robot_description];
   }
-  planning_scene::PlanningSceneConstPtr planning_scene;
+  static planning_scene::PlanningSceneConstPtr planning_scene;
   bool updated = psm->requestPlanningSceneState("/get_planning_scene");
   if (!updated) {
     ROS_ERROR_ONCE("failed to get updated planning scene");
@@ -391,6 +394,10 @@ int main(int argc, char **argv) {
   getRobotModel("");
 
   getPlanningScene("");
+
+  auto psm = planning_scene_monitor::PlanningSceneMonitorPtr(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
+  planning_scene_monitor::LockedPlanningSceneRW planning_scene(psm);
+  planning_scene->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create(), true);
 
   ros::MultiThreadedSpinner spinner;
   spinner.spin();
